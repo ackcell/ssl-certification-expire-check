@@ -1,0 +1,9 @@
+# test urls
+https://qiita.com/ # test qiita
+http://www.yahoo.co.jp
+https://www.yahoo.co.jp
+http://www.google.co.jp
+https://www.google.co.jp
+https://expired.badssl.com
+https://self-signed.badssl.com/
+https://untrusted-root.badssl.com/
