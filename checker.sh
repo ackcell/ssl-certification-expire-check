@@ -8,10 +8,9 @@ else
     echo Not using GNU date: set GNU date command into DATE environment variable, then run again
     exit 99
 fi
-
 usage_exit() {
-        echo "Usage: $0 [-f file] [-h] [-u url]" 1>&2
-        exit 1
+        echo "Usage: $0 [-f file] [-u url] [-h]" 1>&2
+        exit 99
 }
 
 while getopts u:f:h OPT
@@ -41,7 +40,7 @@ if [ ${#SSL} -eq 0 ]; then
   if [ ${#EDATE} -eq 0 ]; then
     # 有効期限なし
     echo "000,$1, NO SSL"
-    return 5
+    return 2 ######
   else
     # 有効期限あり
     will_expire=`$DATE -d "$EDATE" -u +%s` # epoch time
@@ -51,15 +50,16 @@ if [ ${#SSL} -eq 0 ]; then
     printf $1
     printf ","
     printf "$EDATE"
-    return 0
+    return 0 #####
   fi
 
 else
   # SSL問題あり
   echo "000,$1, $SSL"
-  return 1
+  return 1 ######
 fi
 }
+
 if [ ${#FILE} -ne 0 ]; then
   cat "$FILE" | while read line
     do
@@ -75,4 +75,4 @@ if [ ${#URL} -ne 0 ]; then
   INFO=`checksingle $URL`
   echo "$INFO"
 fi
-exit 0
+exit
