@@ -1,42 +1,43 @@
 # Changelog
 
-このプロジェクトの変更履歴です。形式は [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/) に準じます。
+All notable changes to this project are documented in this file.
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
 ### Fixed
-- `hosts.txt` の行末コメント（例: `https://qiita.com/ # test qiita`）を削除した後に残る前後の空白を取り除き、URL が不正になって `NO SSL` と誤判定される問題を修正 ([#2](https://github.com/ackcell/ssl-certification-expire-check/pull/2))
-- `while read` に `IFS= read -r` を指定し、バックスラッシュが消えないように修正 ([#2](https://github.com/ackcell/ssl-certification-expire-check/pull/2))
-- 変数を `"$1"` などでクォートし、`printf` の書式文字列に URL を渡さないように修正。URL に `%` を含んでも正しく出力される ([#2](https://github.com/ackcell/ssl-certification-expire-check/pull/2))
-- `curl` の接続を 1 回にまとめ、結果を使い回すように変更 ([#2](https://github.com/ackcell/ssl-certification-expire-check/pull/2))
-- 引数（`-u` / `-f`）が無い場合に usage を表示して終了するように変更 ([#2](https://github.com/ackcell/ssl-certification-expire-check/pull/2))
+- Trim leading and trailing whitespace after stripping inline comments from `hosts.txt` lines (e.g. `https://qiita.com/ # test qiita`). Previously the trailing space was passed into the URL, causing a false `NO SSL` result ([#2](https://github.com/ackcell/ssl-certification-expire-check/pull/2))
+- Use `IFS= read -r` when reading `hosts.txt` so backslashes are preserved ([#2](https://github.com/ackcell/ssl-certification-expire-check/pull/2))
+- Quote variables (`"$1"`, `"$line"`) and stop passing URLs as `printf` format strings, so URLs containing `%` are printed correctly ([#2](https://github.com/ackcell/ssl-certification-expire-check/pull/2))
+- Show usage and exit when neither `-u` nor `-f` is given ([#2](https://github.com/ackcell/ssl-certification-expire-check/pull/2))
 
 ### Changed
-- `curl` に `--max-time 30` を追加し、応答しないホストで停止しないように変更 ([#2](https://github.com/ackcell/ssl-certification-expire-check/pull/2))
-- `usage_exit` の終了コードを 1 に戻し、`exit 0` を明示 ([#2](https://github.com/ackcell/ssl-certification-expire-check/pull/2))
-- 冗長な `${DATE:-'date'} >/dev/null` 行を削除（直後の `--version` チェックで十分） ([#2](https://github.com/ackcell/ssl-certification-expire-check/pull/2))
+- Make a single `curl` request per URL and reuse its verbose output ([#2](https://github.com/ackcell/ssl-certification-expire-check/pull/2))
+- Add `--max-time 30` to `curl` so unresponsive hosts do not block the run ([#2](https://github.com/ackcell/ssl-certification-expire-check/pull/2))
+- Restore exit code 1 for `usage_exit` and set `exit 0` explicitly ([#2](https://github.com/ackcell/ssl-certification-expire-check/pull/2))
+- Remove the redundant `${DATE:-'date'} >/dev/null` line; the `--version` check that follows is sufficient ([#2](https://github.com/ackcell/ssl-certification-expire-check/pull/2))
 
 ### Known issues
-- 接続失敗（443 番が閉じている等）と SSL 証明書の欠如を区別せず、どちらも `NO SSL` と出力する
-- 負の日数（期限切れ）のときの `printf "%03d"` の出力が `-05` のようになり、`sort` の並びが崩れうる
-- `checksingle` の戻り値は呼び出し側で使われていない（TODO: rc handling）
+- A connection failure (e.g. port 443 closed) and a missing SSL certificate are both reported as `NO SSL`.
+- For expired certificates (negative remaining days), `printf "%03d"` outputs values like `-05`, which breaks `sort` ordering.
+- The return value of `checksingle` is not used by the caller (TODO: rc handling).
 
 ## [2021-12-23]
 
 ### Changed
-- `checker.sh` の後処理を変更（[977c735](https://github.com/ackcell/ssl-certification-expire-check/commit/977c735)）
-  - `checksingle` の戻り値を変更（有効期限なし: `return 5` → `return 2`、SSL 問題あり: `return 1` に明示）。呼び出し側では使われていない
-  - `usage_exit` の終了コードを 1 から 99 に変更 ※ Unreleased で 1 に戻した
-  - `exit 0` を `exit` に変更 ※ Unreleased で `exit 0` に戻した
-  - 作業メモ用の `######` コメントを追加 ※ Unreleased で削除した
+- Post-processing changes in `checker.sh` ([977c735](https://github.com/ackcell/ssl-certification-expire-check/commit/977c735)):
+  - `checksingle` return values changed: no expiry date `return 5` → `return 2`; SSL problem now explicitly `return 1`. The caller does not use these values.
+  - `usage_exit` exit code changed from 1 to 99 (reverted to 1 in Unreleased).
+  - `exit 0` changed to `exit` (reverted to `exit 0` in Unreleased).
+  - Added `######` working-note comments (removed in Unreleased).
 
 ### Documentation
-- README.md を Bitbucket 上で編集（[0e4c915](https://github.com/ackcell/ssl-certification-expire-check/commit/0e4c915)）
+- README.md edited online on Bitbucket ([0e4c915](https://github.com/ackcell/ssl-certification-expire-check/commit/0e4c915)).
 
 ## [2021-12-22]
 
 ### Added
-- SSL 証明書の有効期限を取得するシェルスクリプト `checker.sh` を追加（`-u` で単一 URL、`-f` でファイル指定）（[c40e9f7](https://github.com/ackcell/ssl-certification-expire-check/commit/c40e9f7)）
-- テスト用 URL リスト `hosts.txt` を追加（[c40e9f7](https://github.com/ackcell/ssl-certification-expire-check/commit/c40e9f7)）
-- README.md の使い方・出力例を追加（[c40e9f7](https://github.com/ackcell/ssl-certification-expire-check/commit/c40e9f7)）
-- `.gitignore` を追加（[db8438d](https://github.com/ackcell/ssl-certification-expire-check/commit/db8438d)）
+- `checker.sh`: shell script that fetches SSL certificate expiry dates; `-u` for a single URL, `-f` for a file of URLs ([c40e9f7](https://github.com/ackcell/ssl-certification-expire-check/commit/c40e9f7)).
+- `hosts.txt`: sample list of test URLs ([c40e9f7](https://github.com/ackcell/ssl-certification-expire-check/commit/c40e9f7)).
+- README.md with usage and sample output ([c40e9f7](https://github.com/ackcell/ssl-certification-expire-check/commit/c40e9f7)).
+- `.gitignore` ([db8438d](https://github.com/ackcell/ssl-certification-expire-check/commit/db8438d)).
