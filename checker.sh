@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # DATE="gdate" # gnu date command
 # TODO:rc handling
-${DATE:-'date'} >/dev/null
 if $DATE --version >/dev/null 2>&1 ; then
     :
 else
@@ -10,7 +9,7 @@ else
 fi
 usage_exit() {
         echo "Usage: $0 [-f file] [-u url] [-h]" 1>&2
-        exit 99
+        exit 1
 }
 
 while getopts u:f:h OPT
@@ -22,6 +21,9 @@ do
         \?) usage_exit;;
     esac
 done
+if [ ${#FILE} -eq 0 ] && [ ${#URL} -eq 0 ]; then
+    usage_exit
+fi
 function date2remain() {
   #$1: epoch time
   today=`$DATE -u +%s`
@@ -31,48 +33,51 @@ function date2remain() {
 }
 function checksingle() {
   # url,infoを返す
-SSL=$(curl -v $1 3> /dev/null 2>&1 1>&3 |grep ' SSL certificate problem'|head -n 1|sed  's/.*SSL certificate problem://')
+  # 1回だけ接続して、verbose出力(stderr)を変数に保存する
+  VERBOSE=$(curl -v --max-time 30 "$1" 2>&1 >/dev/null)
+SSL=$(printf '%s\n' "$VERBOSE" | grep ' SSL certificate problem'|head -n 1|sed  's/.*SSL certificate problem://')
 
 if [ ${#SSL} -eq 0 ]; then
   # SSL障害なし
   # expire dateを取得する
-  EDATE=$(curl -v $1 3> /dev/null 2>&1 1>&3 | grep 'expire date:'|head -n 1|sed  's/.*expire date://')
+  EDATE=$(printf '%s\n' "$VERBOSE" | grep 'expire date:'|head -n 1|sed  's/.*expire date://')
   if [ ${#EDATE} -eq 0 ]; then
     # 有効期限なし
     echo "000,$1, NO SSL"
-    return 2 ######
+    return 2
   else
     # 有効期限あり
     will_expire=`$DATE -d "$EDATE" -u +%s` # epoch time
     daysafter=`date2remain $will_expire`
     printf "%03d" $daysafter
     printf ","
-    printf $1
+    printf '%s' "$1"
     printf ","
-    printf "$EDATE"
-    return 0 #####
+    printf '%s' "$EDATE"
+    return 0
   fi
 
 else
   # SSL問題あり
   echo "000,$1, $SSL"
-  return 1 ######
+  return 1
 fi
 }
 
 if [ ${#FILE} -ne 0 ]; then
-  cat "$FILE" | while read line
+  cat "$FILE" | while IFS= read -r line
     do
-      line=`echo $line|sed 's/#.*//g'`
+      # コメントを削除し、前後の空白を取り除く
+      line=`printf '%s\n' "$line" | sed 's/#.*//; s/^[[:space:]]*//; s/[[:space:]]*$//'`
       if [ ${#line} -lt 1 ]; then
         continue
       fi
-      INFO=`checksingle $line`
+      INFO=`checksingle "$line"`
       echo "$INFO"
     done
 fi
 if [ ${#URL} -ne 0 ]; then
-  INFO=`checksingle $URL`
+  INFO=`checksingle "$URL"`
   echo "$INFO"
 fi
-exit
+exit 0
