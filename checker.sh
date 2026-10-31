@@ -67,7 +67,8 @@ fi
 if [ ${#FILE} -ne 0 ]; then
   cat "$FILE" | while IFS= read -r line
     do
-      line=`printf '%s\n' "$line" | sed 's/#.*//g'`
+      # コメントを削除し、前後の空白を取り除く
+      line=`printf '%s\n' "$line" | sed 's/#.*//; s/^[[:space:]]*//; s/[[:space:]]*$//'`
       if [ ${#line} -lt 1 ]; then
         continue
       fi
